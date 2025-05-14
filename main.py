@@ -56,41 +56,57 @@ def index():
         <html>
         <head>
             <title>Contacts</title>
+            <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
         </head>
-        <body>
-            <h2>Add Contacts</h2>
-            <form method="POST" action="/">
-                <label for="name">Name:</label><br>
-                <input type="text" id="name" name="name" required><br>
-                <label for="phone">Phone Number:</label><br>
-                <input type="text" id="phone" name="phone" required><br><br>
-                <input type="submit" value="Submit">
-            </form>
-            <p>{{ message }}</p>
-            {% if contacts %}
-                <table border="1">
-                    <tr>
-                        <th>Name</th>
-                        <th>Phone Number</th>
-                        <th>Delete</th>
-                    </tr>
-                    {% for contact in contacts %}
-                        <tr>
-                            <td>{{ contact['name'] }}</td>
-                            <td>{{ contact['phone'] }}</td>
-                            <td>
-                                <form method="POST" action="/">
-                                    <input type="hidden" name="contact_id" value="{{ contact['id'] }}">
-                                    <input type="hidden" name="action" value="delete">
-                                    <input type="submit" value="Delete">
-                                </form>
-                            </td>
-                        </tr>
-                    {% endfor %}
-                </table>
-            {% else %}
-                <p>No contacts found.</p>
-            {% endif %}
+        <body class="bg-light">
+            <div class="container mt-5">
+                <h2 class="mb-4">Contact List</h2>
+
+                <form method="POST" action="/" class="mb-4 p-4 bg-white shadow rounded">
+                    <div class="mb-3">
+                        <label for="name" class="form-label">Name:</label>
+                        <input type="text" id="name" name="name" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="phone" class="form-label">Phone Number:</label>
+                        <input type="text" id="phone" name="phone" class="form-control" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Add Contact</button>
+                </form>
+
+                {% if message %}
+                    <div class="alert alert-info">{{ message }}</div>
+                {% endif %}
+
+                {% if contacts %}
+                    <table class="table table-bordered table-striped bg-white shadow">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>Name</th>
+                                <th>Phone Number</th>
+                                <th>Delete</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                        {% for contact in contacts %}
+                            <tr>
+                                <td>{{ contact['name'] }}</td>
+                                <td>{{ contact['phone'] }}</td>
+                                <td>
+                                    <form method="POST" action="/">
+                                        <input type="hidden" name="contact_id" value="{{ contact['id'] }}">
+                                        <input type="hidden" name="action" value="delete">
+                                        <button type="submit" class="btn btn-danger btn-sm">Delete</button>
+                                    </form>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                        </tbody>
+                    </table>
+                {% else %}
+                    <p>No contacts found.</p>
+                {% endif %}
+            </div>
         </body>
         </html>
     ''', message=message, contacts=contacts)
