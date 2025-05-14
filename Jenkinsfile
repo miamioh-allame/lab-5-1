@@ -1,8 +1,8 @@
 pipeline {
-    agent any 
+    agent any
 
     environment {
-        DOCKER_CREDENTIALS_ID = 'roseaw-dockerhub'  
+        DOCKER_CREDENTIALS_ID = 'roseaw-dockerhub'
         DOCKER_IMAGE = 'cithit/allame'
         IMAGE_TAG = "build-${BUILD_NUMBER}"
         GITHUB_URL = 'https://github.com/miamioh-allame/lab-5-1.git'
@@ -24,7 +24,7 @@ pipeline {
                 sh 'npx htmlhint *.html'
             }
         }
-        
+
         stage('Build Docker Image') {
             steps {
                 script {
@@ -53,25 +53,25 @@ pipeline {
         }
 
         stage('Generate Test Data') {
-    steps {
-        script {
-            sh "sleep 15"
-            def appPod = sh(script: "kubectl get pods -l app=flask -o jsonpath='{.items[0].metadata.name}'", returnStdout: true).trim()
-            sh "kubectl exec ${appPod} -c flask -- python3 data-gen.py"
+            steps {
+                script {
+                    sleep 15
+                    def appPod = sh(script: "kubectl get pods -l app=flask -o jsonpath='{.items[0].metadata.name}'", returnStdout: true).trim()
+                    sh "kubectl exec ${appPod} -c flask -- python3 data-gen.py"
+                }
+            }
         }
-    }
-}
 
-     stage('Run Acceptance Tests') {
-    steps {
-        script {
-            sh 'docker stop qa-tests || true'
-            sh 'docker rm qa-tests || true'
-            sh 'docker build -t qa-tests -f Dockerfile.test .'
-            sh 'docker run qa-tests'
+        stage('Run Acceptance Tests') {
+            steps {
+                script {
+                    sh 'docker stop qa-tests || true'
+                    sh 'docker rm qa-tests || true'
+                    sh 'docker build -t qa-tests -f Dockerfile.test .'
+                    sh 'docker run -e TARGET_URL=http://10.48.10.127 qa-tests'
+                }
+            }
         }
-    }
-}
 
         stage('Run Security Checks') {
             steps {
@@ -85,7 +85,6 @@ pipeline {
             }
         }
 
-
         stage('Deploy to Prod Environment') {
             steps {
                 script {
@@ -95,45 +94,41 @@ pipeline {
             }
         }
 
-       stage('Remove Test Data') {
-    steps {
-        script {
-            def appPod = sh(script: "kubectl get pods -l app=flask -o jsonpath='{.items[0].metadata.name}'", returnStdout: true).trim()
-            sh """
-                kubectl exec ${appPod} -c flask -- sh -c "python3 -c '
+        stage('Remove Test Data') {
+            steps {
+                script {
+                    def appPod = sh(script: "kubectl get pods -l app=flask -o jsonpath='{.items[0].metadata.name}'", returnStdout: true).trim()
+                    sh """
+                        kubectl exec ${appPod} -c flask -- sh -c "python3 -c '
 import sqlite3
 db = sqlite3.connect(\"/nfs/demo.db\")
 cursor = db.cursor()
-cursor.execute(\"DELETE FROM contacts WHERE NOT (name = 'Marie' AND phone = '5138882342')\")
+cursor.execute(\"DELETE FROM contacts WHERE name LIKE 'Sample Contact %'\")
 db.commit()
 db.close()
-print(\\"All contacts except 'Marie - 5138882342' have been deleted.\\")
+print(\\"Sample contacts removed.\\")
 '"
-            """
+                    """
+                }
+            }
         }
-    }
-}
-
 
         stage('Check Kubernetes Cluster') {
             steps {
-                script {
-                    sh "kubectl get all"
-                }
+                sh 'kubectl get all'
             }
         }
     }
 
     post {
         success {
-            slackSend(color: "good", message: "Build Completed: ${env.JOB_NAME} ${env.BUILD_NUMBER}")
+            slackSend(color: "good", message: "✅ SUCCESS: ${env.JOB_NAME} #${env.BUILD_NUMBER}")
         }
         unstable {
-            slackSend(color: "warning", message: "Build Completed: ${env.JOB_NAME} ${env.BUILD_NUMBER}")
+            slackSend(color: "warning", message: "⚠️ UNSTABLE: ${env.JOB_NAME} #${env.BUILD_NUMBER}")
         }
         failure {
-            slackSend(color: "danger", message: "Build Completed: ${env.JOB_NAME} ${env.BUILD_NUMBER}")
+            slackSend(color: "danger", message: "❌ FAILED: ${env.JOB_NAME} #${env.BUILD_NUMBER}")
         }
     }
 }
-
