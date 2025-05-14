@@ -6,7 +6,7 @@ RUN apt-get clean && apt-get -y update && apt-get -y install nginx python3-dev b
 # Create mount point for NFS
 RUN mkdir -p /nfs
 
-COPY /data/demo.db /nfs
+# Removed: COPY /data/demo.db /nfs
 
 # Copy application files
 COPY . .
@@ -18,4 +18,4 @@ RUN pip install -r requirements1.txt
 EXPOSE 5000
 
 # Command to run the application
-CMD ["python3", "main.py"] 
+CMD ["python3", "main.py"]
