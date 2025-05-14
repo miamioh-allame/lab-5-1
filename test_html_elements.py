@@ -17,7 +17,7 @@ class TestContacts(unittest.TestCase):
     def test_contacts(self):
         driver = self.driver
         # Get the target URL from environment variable, fallback to LoadBalancer IP
-        target_url = os.getenv("TARGET_URL", "http://10.48.10.225")
+        target_url = os.getenv("TARGET_URL", "http://10.48.10.127")
         driver.get(target_url)
 
         # Check for the presence of all 10 test contacts
