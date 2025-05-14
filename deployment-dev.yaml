@@ -10,7 +10,7 @@ spec:
   accessModes:
     - ReadWriteMany
   nfs:
-    path:  /srv/nfs/allame         #your MiamiID
+    path:  /srv/nfs/allame
     server: 10.48.10.140
   persistentVolumeReclaimPolicy: Retain
 ---
@@ -46,7 +46,7 @@ spec:
     spec:
       containers:
         - name: flask
-          image: cithit/allame:latest    #your MiamiID
+          image: cithit/allame:IMAGE_TAG
           ports:
             - containerPort: 5000
           volumeMounts:
@@ -68,7 +68,6 @@ spec:
     targetPort: 5000
   selector:
     app: flask
-
 ---
 apiVersion: networking.k8s.io/v1
 kind: Ingress
@@ -76,7 +75,7 @@ metadata:
   name: nginx
 spec:
   rules: 
-  - host: 
+  - host: flask-dev.local
     http:
       paths:
       - path: /
