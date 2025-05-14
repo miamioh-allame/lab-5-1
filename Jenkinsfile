@@ -62,17 +62,16 @@ pipeline {
     }
 }
 
-      stage('Run Acceptance Tests') {
-            steps {
-                script {
-                    sh 'docker stop qa-tests || true'
-                    sh 'docker rm qa-tests || true'
-                    sh 'docker build -t qa-tests -f Dockerfile.test .'
-                    // Target LoadBalancer IP directly here
-                    sh 'docker run -e TARGET_URL=http://10.48.10.127 qa-tests'
-                }
-            }
+     stage('Run Acceptance Tests') {
+    steps {
+        script {
+            sh 'docker stop qa-tests || true'
+            sh 'docker rm qa-tests || true'
+            sh 'docker build -t qa-tests -f Dockerfile.test .'
+            sh 'docker run qa-tests'
         }
+    }
+}
 
         stage('Run Security Checks') {
             steps {
