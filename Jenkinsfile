@@ -69,7 +69,7 @@ pipeline {
                     sh 'docker rm qa-tests || true'
                     sh 'docker build -t qa-tests -f Dockerfile.test .'
                     // Target LoadBalancer IP directly here
-                    sh 'docker run -e TARGET_URL=http://10.48.10.225 qa-tests'
+                    sh 'docker run -e TARGET_URL=http://10.48.10.127 qa-tests'
                 }
             }
         }
@@ -79,7 +79,7 @@ pipeline {
                 sh 'docker pull public.ecr.aws/portswigger/dastardly:latest'
                 sh '''
                     docker run --user $(id -u) -v ${WORKSPACE}:${WORKSPACE}:rw \
-                    -e BURP_START_URL=http://10.48.10.225 \
+                    -e BURP_START_URL=http://10.48.10.127 \
                     -e BURP_REPORT_FILE_PATH=${WORKSPACE}/dastardly-report.xml \
                     public.ecr.aws/portswigger/dastardly:latest
                 '''
