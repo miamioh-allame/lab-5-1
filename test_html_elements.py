@@ -15,8 +15,9 @@ class TestContacts(unittest.TestCase):
         self.driver = webdriver.Firefox(options=firefox_options)
 
     def test_contacts(self):
-    driver = self.driver
-    driver.get("http://10.48.10.127")
+        driver = self.driver
+        target_url = os.getenv("TARGET_URL", "http://10.48.10.127")
+        driver.get(target_url)
 
     # Verify real contacts exist
     real_contacts = [
@@ -29,6 +30,7 @@ class TestContacts(unittest.TestCase):
         assert contact in driver.page_source, f"Expected contact '{contact}' not found."
 
     print("All real contacts successfully verified.")
+
 
 
     def tearDown(self):
