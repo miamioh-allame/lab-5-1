@@ -3,6 +3,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.firefox.options import Options
 import unittest
+import os
 
 class TestContacts(unittest.TestCase):
     def setUp(self):
@@ -15,12 +16,15 @@ class TestContacts(unittest.TestCase):
 
     def test_contacts(self):
         driver = self.driver
-        driver.get("http://10.48.10.127")  # Replace with your target website
-        
+        # Get the target URL from environment variable, fallback to LoadBalancer IP
+        target_url = os.getenv("TARGET_URL", "http://10.48.10.225")
+        driver.get(target_url)
+
         # Check for the presence of all 10 test contacts
         for i in range(10):
             test_name = f'Test Name {i}'
             assert test_name in driver.page_source, f"Test contact {test_name} not found in page source"
+
         print("Test completed successfully. All 10 test contacts were verified.")
 
     def tearDown(self):
@@ -28,3 +32,4 @@ class TestContacts(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
