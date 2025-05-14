@@ -28,7 +28,6 @@ def init_db():
 def index():
     message = ''  # Message indicating the result of the operation
     if request.method == 'POST':
-        # Check if it's a delete action
         if request.form.get('action') == 'delete':
             contact_id = request.form.get('contact_id')
             db = get_db()
@@ -46,11 +45,9 @@ def index():
             else:
                 message = 'Missing name or phone number.'
 
-    # Always display the contacts table
     db = get_db()
     contacts = db.execute('SELECT * FROM contacts').fetchall()
 
-    # Display the HTML form along with the contacts table
     return render_template_string('''
         <!DOCTYPE html>
         <html>
@@ -60,9 +57,9 @@ def index():
         </head>
         <body class="bg-light">
             <div class="container mt-5">
-                <h2 class="mb-4">Contact List</h2>
+                <h2 class="mb-4 text-center">📇 Add Contacts</h2>
 
-                <form method="POST" action="/" class="mb-4 p-4 bg-white shadow rounded">
+                <form method="POST" action="/" class="p-4 bg-white rounded shadow-sm mb-4">
                     <div class="mb-3">
                         <label for="name" class="form-label">Name:</label>
                         <input type="text" id="name" name="name" class="form-control" required>
@@ -71,7 +68,7 @@ def index():
                         <label for="phone" class="form-label">Phone Number:</label>
                         <input type="text" id="phone" name="phone" class="form-control" required>
                     </div>
-                    <button type="submit" class="btn btn-primary">Add Contact</button>
+                    <button type="submit" class="btn btn-primary">Submit</button>
                 </form>
 
                 {% if message %}
@@ -79,7 +76,7 @@ def index():
                 {% endif %}
 
                 {% if contacts %}
-                    <table class="table table-bordered table-striped bg-white shadow">
+                    <table class="table table-bordered table-striped bg-white shadow-sm">
                         <thead class="table-dark">
                             <tr>
                                 <th>Name</th>
@@ -93,7 +90,7 @@ def index():
                                 <td>{{ contact['name'] }}</td>
                                 <td>{{ contact['phone'] }}</td>
                                 <td>
-                                    <form method="POST" action="/">
+                                    <form method="POST" action="/" class="m-0">
                                         <input type="hidden" name="contact_id" value="{{ contact['id'] }}">
                                         <input type="hidden" name="action" value="delete">
                                         <button type="submit" class="btn btn-danger btn-sm">Delete</button>
@@ -113,5 +110,6 @@ def index():
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
-    init_db()  # Initialize the database and table
+    init_db()
     app.run(debug=True, host='0.0.0.0', port=port)
+
