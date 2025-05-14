@@ -1,115 +1,45 @@
-from flask import Flask, request, render_template_string, redirect, url_for
+from flask import Flask, render_template_string
 import sqlite3
-import os
 
 app = Flask(__name__)
 
-# Database file path
-DATABASE = '/nfs/demo.db'
+TEMPLATE = """
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Contacts</title>
+    <style>
+        body { font-family: Arial; background-color: #f9f9f9; }
+        table { width: 70%; margin: auto; border-collapse: collapse; }
+        th, td { border: 1px solid #ccc; padding: 8px; text-align: center; }
+        th { background-color: #eee; }
+    </style>
+</head>
+<body>
+    <h2 style="text-align:center;">📞 Contact List – Powered by Jenkins CI/CD</h2>
+    <table>
+        <tr><th>Name</th><th>Phone</th><th>Delete</th></tr>
+        {% for contact in contacts %}
+            <tr>
+                <td>{{ contact[0] }}</td>
+                <td>{{ contact[1] }}</td>
+                <td>🟥 Delete</td>
+            </tr>
+        {% endfor %}
+    </table>
+</body>
+</html>
+"""
 
-def get_db():
-    db = sqlite3.connect(DATABASE)
-    db.row_factory = sqlite3.Row  # This enables name-based access to columns
-    return db
-
-def init_db():
-    with app.app_context():
-        db = get_db()
-        db.execute('''
-            CREATE TABLE IF NOT EXISTS contacts (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                name TEXT NOT NULL,
-                phone TEXT NOT NULL
-            );
-        ''')
-        db.commit()
-
-@app.route('/', methods=['GET', 'POST'])
-def index():
-    message = ''  # Message indicating the result of the operation
-    if request.method == 'POST':
-        if request.form.get('action') == 'delete':
-            contact_id = request.form.get('contact_id')
-            db = get_db()
-            db.execute('DELETE FROM contacts WHERE id = ?', (contact_id,))
-            db.commit()
-            message = 'Contact deleted successfully.'
-        else:
-            name = request.form.get('name')
-            phone = request.form.get('phone')
-            if name and phone:
-                db = get_db()
-                db.execute('INSERT INTO contacts (name, phone) VALUES (?, ?)', (name, phone))
-                db.commit()
-                message = 'Contact added successfully.'
-            else:
-                message = 'Missing name or phone number.'
-
-    db = get_db()
-    contacts = db.execute('SELECT * FROM contacts').fetchall()
-
-    return render_template_string('''
-        <!DOCTYPE html>
-        <html>
-        <head>
-            <title>Contacts</title>
-            <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-        </head>
-        <body class="bg-light">
-            <div class="container mt-5">
-                <h2 class="mb-4 text-center">📇 Add Contacts</h2>
-
-                <form method="POST" action="/" class="p-4 bg-white rounded shadow-sm mb-4">
-                    <div class="mb-3">
-                        <label for="name" class="form-label">Name:</label>
-                        <input type="text" id="name" name="name" class="form-control" required>
-                    </div>
-                    <div class="mb-3">
-                        <label for="phone" class="form-label">Phone Number:</label>
-                        <input type="text" id="phone" name="phone" class="form-control" required>
-                    </div>
-                    <button type="submit" class="btn btn-primary">Submit</button>
-                </form>
-
-                {% if message %}
-                    <div class="alert alert-info">{{ message }}</div>
-                {% endif %}
-
-                {% if contacts %}
-                    <table class="table table-bordered table-striped bg-white shadow-sm">
-                        <thead class="table-dark">
-                            <tr>
-                                <th>Name</th>
-                                <th>Phone Number</th>
-                                <th>Delete</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                        {% for contact in contacts %}
-                            <tr>
-                                <td>{{ contact['name'] }}</td>
-                                <td>{{ contact['phone'] }}</td>
-                                <td>
-                                    <form method="POST" action="/" class="m-0">
-                                        <input type="hidden" name="contact_id" value="{{ contact['id'] }}">
-                                        <input type="hidden" name="action" value="delete">
-                                        <button type="submit" class="btn btn-danger btn-sm">Delete</button>
-                                    </form>
-                                </td>
-                            </tr>
-                        {% endfor %}
-                        </tbody>
-                    </table>
-                {% else %}
-                    <p>No contacts found.</p>
-                {% endif %}
-            </div>
-        </body>
-        </html>
-    ''', message=message, contacts=contacts)
+@app.route("/")
+def contact_list():
+    conn = sqlite3.connect("/nfs/demo.db")
+    cur = conn.cursor()
+    cur.execute("CREATE TABLE IF NOT EXISTS contacts (name TEXT, phone TEXT)")
+    cur.execute("SELECT name, phone FROM contacts")
+    rows = cur.fetchall()
+    conn.close()
+    return render_template_string(TEMPLATE, contacts=rows)
 
 if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 5000))
-    init_db()
-    app.run(debug=True, host='0.0.0.0', port=port)
-
+    app.run(host="0.0.0.0", port=5000)
