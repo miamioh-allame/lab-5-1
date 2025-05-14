@@ -7,8 +7,8 @@ def connect_db():
     """Connect to the SQLite database."""
     return sqlite3.connect(DATABASE)
 
-def generate_test_data(num_contacts):
-    """Generate test data for the contacts table."""
+def generate_test_data():
+    """Generate mixed real and sample test data."""
     db = connect_db()
     cursor = db.cursor()
 
@@ -21,14 +21,27 @@ def generate_test_data(num_contacts):
         )
     ''')
 
-    for i in range(num_contacts):
-        name = f'Test Name {i}'
-        phone = f'123-456-789{i}'
+    # Real contacts
+    real_contacts = [
+        ('Marie Alla', '513-888-2342'),
+        ('John Smith', '305-456-7890'),
+        ('Lisa Ray', '312-555-1212')
+    ]
+
+    # Sample/test contacts
+    sample_contacts = [
+        ('Sample Contact 1', '999-000-1001'),
+        ('Sample Contact 2', '999-000-1002'),
+        ('Sample Contact 3', '999-000-1003')
+    ]
+
+    # Insert into table
+    for name, phone in real_contacts + sample_contacts:
         cursor.execute('INSERT INTO contacts (name, phone) VALUES (?, ?)', (name, phone))
 
     db.commit()
-    print(f'{num_contacts} test contacts added to the database.')
+    print(f'{len(real_contacts) + len(sample_contacts)} contacts added.')
     db.close()
 
 if __name__ == '__main__':
-    generate_test_data(10)  # Generate 10 test contacts
+    generate_test_data()
