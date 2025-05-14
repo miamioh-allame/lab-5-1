@@ -3,10 +3,10 @@ pipeline {
 
     environment {
         DOCKER_CREDENTIALS_ID = 'roseaw-dockerhub'  
-        DOCKER_IMAGE = 'cithit/allame'                     // Change to your MiamiID Docker image
+        DOCKER_IMAGE = 'cithit/allame'
         IMAGE_TAG = "build-${BUILD_NUMBER}"
-        GITHUB_URL = 'https://github.com/miamioh-allame/lab-5-1.git' // Change to your repo
-        KUBECONFIG = credentials('allame-225')             // Change to your Kubernetes creds
+        GITHUB_URL = 'https://github.com/miamioh-allame/lab-5-1.git'
+        KUBECONFIG = credentials('allame-225')
     }
 
     stages {
@@ -62,7 +62,7 @@ pipeline {
             }
         }
 
-        stage("Run Acceptance Tests") {
+        stage('Run Acceptance Tests') {
             steps {
                 script {
                     sh 'docker stop qa-tests || true'
@@ -73,7 +73,7 @@ pipeline {
             }
         }
 
-        stage("Run Security Checks") {
+        stage('Run Security Checks') {
             steps {
                 sh 'docker pull public.ecr.aws/portswigger/dastardly:latest'
                 sh '''
@@ -114,16 +114,13 @@ pipeline {
 
     post {
         success {
-            slackSend color: "good", message: "Build Completed: ${env.JOB_NAME} ${env.BUILD_NUMBER}"
+            slackSend(color: "good", message: "Build Completed: ${env.JOB_NAME} ${env.BUILD_NUMBER}")
         }
         unstable {
-            slackSend color: "warning", message: "Build Completed: ${env.JOB_NAME} ${env.BUILD_NUMBER}"
+            slackSend(color: "warning", message: "Build Completed: ${env.JOB_NAME} ${env.BUILD_NUMBER}")
         }
         failure {
-            slackSend color: "danger", message: "Build Completed: ${env.JOB_NAME} ${env.BUILD_NUMBER}"
+            slackSend(color: "danger", message: "Build Completed: ${env.JOB_NAME} ${env.BUILD_NUMBER}")
         }
     }
-}
-
-}
 
