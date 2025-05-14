@@ -53,14 +53,14 @@ pipeline {
         }
 
         stage('Generate Test Data') {
-            steps {
-                script {
-                    sh "sleep 15"
-                    def appPod = sh(script: "kubectl get pods -l app=flask -o jsonpath='{.items[0].metadata.name}'", returnStdout: true).trim()
-                    sh "kubectl exec ${appPod} -- python3 data-gen.py"
-                }
-            }
+    steps {
+        script {
+            sh "sleep 15"
+            def appPod = sh(script: "kubectl get pods -l app=flask -o jsonpath='{.items[0].metadata.name}'", returnStdout: true).trim()
+            sh "kubectl exec ${appPod} -c flask -- python3 data-gen.py"
         }
+    }
+}
 
         stage('Run Acceptance Tests') {
             steps {
@@ -95,13 +95,14 @@ pipeline {
         }
 
         stage('Remove Test Data') {
-            steps {
-                script {
-                    def appPod = sh(script: "kubectl get pods -l app=flask -o jsonpath='{.items[0].metadata.name}'", returnStdout: true).trim()
-                    sh "kubectl exec ${appPod} -- python3 data-clear.py"
-                }
-            }
+    steps {
+        script {
+            def appPod = sh(script: "kubectl get pods -l app=flask -o jsonpath='{.items[0].metadata.name}'", returnStdout: true).trim()
+            sh "kubectl exec ${appPod} -c flask -- python3 data-clear.py"
         }
+    }
+}
+
 
         stage('Check Kubernetes Cluster') {
             steps {
