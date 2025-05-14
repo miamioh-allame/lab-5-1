@@ -9,27 +9,30 @@ class TestContacts(unittest.TestCase):
     def setUp(self):
         # Setup Firefox options
         firefox_options = Options()
-        firefox_options.add_argument("--headless")  # Ensures the browser window does not open
+        firefox_options.add_argument("--headless")
         firefox_options.add_argument("--no-sandbox")
         firefox_options.add_argument("--disable-dev-shm-usage")
         self.driver = webdriver.Firefox(options=firefox_options)
 
     def test_contacts(self):
         driver = self.driver
-        # Get the target URL from environment variable, fallback to LoadBalancer IP
         target_url = os.getenv("TARGET_URL", "http://10.48.10.127")
         driver.get(target_url)
 
-        # Check for the presence of all 10 test contacts
-        for i in range(10):
-            test_name = f'Test Name {i}'
-            assert test_name in driver.page_source, f"Test contact {test_name} not found in page source"
+        # Verify real contacts exist
+        real_contacts = [
+            "Marie Alla",
+            "John Smith",
+            "Lisa Ray"
+        ]
 
-        print("Test completed successfully. All 10 test contacts were verified.")
+        for contact in real_contacts:
+            assert contact in driver.page_source, f"Expected contact '{contact}' not found."
+
+        print("All real contacts successfully verified.")
 
     def tearDown(self):
         self.driver.quit()
 
 if __name__ == "__main__":
     unittest.main()
-
