@@ -46,7 +46,7 @@ spec:
     spec:
       containers:
         - name: flask
-          image: cithit/allame:IMAGE_TAG
+          image: cithit/allame
           ports:
             - containerPort: 5000
           volumeMounts:
