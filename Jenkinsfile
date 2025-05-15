@@ -13,8 +13,11 @@ pipeline {
         stage('Code Checkout') {
             steps {
                 cleanWs()
-                checkout([$class: 'GitSCM', branches: [[name: '*/main']],
-                          userRemoteConfigs: [[url: "${GITHUB_URL}"]]])
+                checkout([
+                    $class: 'GitSCM',
+                    branches: [[name: '*/main']],
+                    userRemoteConfigs: [[url: "${GITHUB_URL}"]]
+                ])
             }
         }
 
@@ -56,7 +59,10 @@ pipeline {
             steps {
                 script {
                     sleep 15
-                    def appPod = sh(script: "kubectl get pods -l app=flask -o jsonpath='{.items[0].metadata.name}'", returnStdout: true).trim()
+                    def appPod = sh(
+                        script: "kubectl get pods -l app=flask -o jsonpath='{.items[0].metadata.name}'",
+                        returnStdout: true
+                    ).trim()
                     sh "kubectl exec ${appPod} -c flask -- python3 data-gen.py"
                 }
             }
@@ -69,6 +75,29 @@ pipeline {
                     sh 'docker rm qa-tests || true'
                     sh 'docker build -t qa-tests -f Dockerfile.test .'
                     sh 'docker run -e TARGET_URL=http://10.48.10.127 qa-tests'
+                }
+            }
+        }
+
+        stage('Remove Test Data') {
+            steps {
+                script {
+                    def appPod = sh(
+                        script: "kubectl get pods -l app=flask -o jsonpath='{.items[0].metadata.name}'",
+                        returnStdout: true
+                    ).trim()
+
+                    sh """
+                        kubectl exec ${appPod} -c flask -- sh -c "python3 -c '
+import sqlite3
+db = sqlite3.connect(\\"/nfs/demo.db\\")
+cursor = db.cursor()
+cursor.execute(\\"DELETE FROM contacts WHERE name LIKE 'Sample Contact %'\\")
+db.commit()
+db.close()
+print(\\"Sample contacts removed.\\")
+'"
+                    """
                 }
             }
         }
@@ -90,25 +119,6 @@ pipeline {
                 script {
                     sh "sed -i 's|${DOCKER_IMAGE}:latest|${DOCKER_IMAGE}:${IMAGE_TAG}|' deployment-prod.yaml"
                     sh "kubectl apply -f deployment-prod.yaml"
-                }
-            }
-        }
-
-        stage('Remove Test Data') {
-            steps {
-                script {
-                    def appPod = sh(script: "kubectl get pods -l app=flask -o jsonpath='{.items[0].metadata.name}'", returnStdout: true).trim()
-                    sh """
-                        kubectl exec ${appPod} -c flask -- sh -c "python3 -c '
-import sqlite3
-db = sqlite3.connect(\"/nfs/demo.db\")
-cursor = db.cursor()
-cursor.execute(\"DELETE FROM contacts WHERE name LIKE 'Sample Contact %'\")
-db.commit()
-db.close()
-print(\\"Sample contacts removed.\\")
-'"
-                    """
                 }
             }
         }
