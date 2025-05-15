@@ -9,7 +9,7 @@ class TestContacts(unittest.TestCase):
     def setUp(self):
         # Setup Firefox options
         firefox_options = Options()
-        firefox_options.add_argument("--headless")
+        firefox_options.add_argument("--headless")  # Ensures the browser window does not open
         firefox_options.add_argument("--no-sandbox")
         firefox_options.add_argument("--disable-dev-shm-usage")
         self.driver = webdriver.Firefox(options=firefox_options)
@@ -19,19 +19,17 @@ class TestContacts(unittest.TestCase):
         target_url = os.getenv("TARGET_URL", "http://10.48.10.127")
         driver.get(target_url)
 
-    # Verify real contacts exist
-    real_contacts = [
-        "Marie Alla",
-        "John Smith",
-        "Lisa Ray"
-    ]
+        # Verify real contacts exist
+        real_contacts = [
+            "Marie Alla",
+            "John Smith",
+            "Lisa Ray"
+        ]
 
-    for contact in real_contacts:
-        assert contact in driver.page_source, f"Expected contact '{contact}' not found."
+        for contact in real_contacts:
+            assert contact in driver.page_source, f"Expected contact '{contact}' not found."
 
-    print("All real contacts successfully verified.")
-
-
+        print("All real contacts successfully verified.")
 
     def tearDown(self):
         self.driver.quit()
