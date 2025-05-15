@@ -74,7 +74,7 @@ pipeline {
                     sh 'docker stop qa-tests || true'
                     sh 'docker rm qa-tests || true'
                     sh 'docker build -t qa-tests -f Dockerfile.test .'
-                    sh 'docker run -e TARGET_URL=http://10.48.10.127 qa-tests'
+                    sh 'docker run -e TARGET_URL=http://10.48.10.225 qa-tests'
                 }
             }
         }
