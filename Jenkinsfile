@@ -53,6 +53,16 @@ pipeline {
             }
         }
 
+stage('Init DB Schema') {
+    steps {
+        script {
+            sleep 10
+            def appPod = sh(script: "kubectl get pods -l app=flask -o jsonpath='{.items[0].metadata.name}'", returnStdout: true).trim()
+            sh "kubectl wait pod/${appPod} --for=condition=ready --timeout=60s"
+            sh "kubectl exec ${appPod} -c flask -- sh -c 'python3 -c \"from main import init_db; init_db()\"'"
+        }
+    }
+}
 
         
         stage('Generate Test Data') {
