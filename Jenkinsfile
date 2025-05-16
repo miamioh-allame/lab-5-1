@@ -59,6 +59,26 @@ pipeline {
             }
         }
 
+
+        stage('Reset Database (one-time)') {
+            steps {
+                script {
+                    def appPod = sh(
+                        script: "kubectl get pods -l app=flask -o jsonpath='{.items[0].metadata.name}'",
+                        returnStdout: true
+                    ).trim()
+
+                    // Ensure pod is ready before trying to delete the file
+                    sh "kubectl wait pod/${appPod} --for=condition=ready --timeout=60s"
+
+                    // Delete the old DB file if it exists
+                    sh "kubectl exec ${appPod} -c flask -- rm -f /nfs/demo.db"
+                    echo "✅ Old database file deleted to reset schema."
+                }
+            }
+        }
+
+        
           stage('Generate Test Data') {
     steps {
         script {
