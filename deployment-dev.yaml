@@ -75,7 +75,7 @@ metadata:
   name: nginx
 spec:
   rules: 
-  - host: flask-dev.local
+  - host: 
     http:
       paths:
       - path: /
