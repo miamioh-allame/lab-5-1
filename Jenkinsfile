@@ -49,48 +49,50 @@ pipeline {
         stage('Deploy to Dev Environment') {
             steps {
                 script {
+                    // This sets up the Kubernetes configuration using the specified KUBECONFIG
+                    def kubeConfig = readFile(KUBECONFIG)
+                    sh "kubectl delete --all deployments --namespace=default"
+                    // This updates the deployment-dev.yaml to use the new image tag
                     sh "sed -i 's|${DOCKER_IMAGE}:latest|${DOCKER_IMAGE}:${IMAGE_TAG}|' deployment-dev.yaml"
                     sh "kubectl apply -f deployment-dev.yaml"
                 }
             }
         }
 
-        stage('Generate Test Data') {
+          stage('Generate Test Data') {
             steps {
                 script {
-                    sleep 15
-                    def appPod = sh(
-                        script: "kubectl get pods -l app=flask -o jsonpath='{.items[0].metadata.name}'",
-                        returnStdout: true
-                    ).trim()
-                    sh "kubectl exec ${appPod} -c flask -- python3 data-gen.py"
+                // Ensure the label accurately targets the correct pods.
+                def appPod = sh(script: "kubectl get pods -l app=flask -o jsonpath='{.items[0].metadata.name}'", returnStdout: true).trim()
+                // Execute command within the pod. 
+                sh "kubectl get pods"
+                sh "sleep 15"
+                sh "kubectl exec ${appPod} -- python3 data-gen.py"
                 }
             }
-        }
+    }
 
-        stage('Run Acceptance Tests') {
+        stage("Run Acceptance Tests") {
             steps {
                 script {
                     sh 'docker stop qa-tests || true'
                     sh 'docker rm qa-tests || true'
                     sh 'docker build -t qa-tests -f Dockerfile.test .'
-                    sh 'docker run -e TARGET_URL=http://10.48.10.225 qa-tests'
+                    sh 'docker run qa-tests'
                 }
             }
         }
+        
 
         stage('Remove Test Data') {
-    steps {
-        script {
-            def appPod = sh(
-                script: "kubectl get pods -l app=flask -o jsonpath='{.items[0].metadata.name}'",
-                returnStdout: true
-            ).trim()
-
-            sh "kubectl exec ${appPod} -c flask -- python3 data-clear.py"
+            steps {
+                script {
+                    // Run the python script to generate data to add to the database
+                    def appPod = sh(script: "kubectl get pods -l app=flask -o jsonpath='{.items[0].metadata.name}'", returnStdout: true).trim()
+                    sh "kubectl exec ${appPod} -- python3 data-clear.py"
+                }
+            }
         }
-    }
-}
 
         stage('Run Security Checks') {
             steps {
@@ -107,28 +109,34 @@ pipeline {
         stage('Deploy to Prod Environment') {
             steps {
                 script {
+                    // Set up Kubernetes configuration using the specified KUBECONFIG
+                    //sh "ls -la"
                     sh "sed -i 's|${DOCKER_IMAGE}:latest|${DOCKER_IMAGE}:${IMAGE_TAG}|' deployment-prod.yaml"
+                    sh "cd .."
                     sh "kubectl apply -f deployment-prod.yaml"
                 }
             }
         }
 
-        stage('Check Kubernetes Cluster') {
+         stage('Check Kubernetes Cluster') {
             steps {
-                sh 'kubectl get all'
+                script {
+                    sh "kubectl get all"
+                }
             }
         }
     }
 
-    post {
+     post {
+
         success {
-            slackSend(color: "good", message: "✅ SUCCESS: ${env.JOB_NAME} #${env.BUILD_NUMBER}")
+            slackSend color: "good", message: "Build Completed: ${env.JOB_NAME} ${env.BUILD_NUMBER}"
         }
         unstable {
-            slackSend(color: "warning", message: "⚠️ UNSTABLE: ${env.JOB_NAME} #${env.BUILD_NUMBER}")
+            slackSend color: "warning", message: "Build Completed: ${env.JOB_NAME} ${env.BUILD_NUMBER}"
         }
         failure {
-            slackSend(color: "danger", message: "❌ FAILED: ${env.JOB_NAME} #${env.BUILD_NUMBER}")
+            slackSend color: "danger", message: "Build Completed: ${env.JOB_NAME} ${env.BUILD_NUMBER}"
         }
     }
 }
