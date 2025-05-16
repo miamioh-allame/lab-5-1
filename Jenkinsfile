@@ -80,27 +80,13 @@ pipeline {
         }
 
         stage('Remove Test Data') {
-            steps {
-                script {
-                    def appPod = sh(
-                        script: "kubectl get pods -l app=flask -o jsonpath='{.items[0].metadata.name}'",
-                        returnStdout: true
-                    ).trim()
-
-                    sh """
-                        kubectl exec ${appPod} -c flask -- sh -c "python3 -c '
-import sqlite3
-db = sqlite3.connect(\\"/nfs/demo.db\\")
-cursor = db.cursor()
-cursor.execute(\\"DELETE FROM contacts WHERE name LIKE 'Sample Contact %'\\")
-db.commit()
-db.close()
-print(\\"Sample contacts removed.\\")
-'"
-                    """
-                }
-            }
+    steps {
+        script {
+            def appPod = sh(script: "kubectl get pods -l app=flask -o jsonpath='{.items[0].metadata.name}'", returnStdout: true).trim()
+            sh "kubectl exec ${appPod} -c flask -- python3 data-clear.py"
         }
+    }
+}
 
         stage('Run Security Checks') {
             steps {
