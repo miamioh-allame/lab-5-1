@@ -1,21 +1,28 @@
+# Use an official Python runtime as a parent image
 FROM python:3.9-slim
 
-# Install dependencies
-RUN apt-get clean && apt-get -y update && apt-get -y install nginx python3-dev build-essential nfs-common && rm -rf /var/lib/apt/lists/*
+# Set the working directory in the container
+WORKDIR /usr/src/app
 
-# Create mount point for NFS
-RUN mkdir -p /nfs
-
-COPY /data/demo.db /nfs
-
-# Copy application files
+# Copy the current directory contents into the container at /usr/src/app
 COPY . .
 
 # Install Python dependencies
-RUN pip install -r requirements1.txt
+RUN pip install --no-cache-dir -r requirements1.txt
 
-# Expose port 5000 for the application
+# Install system dependencies for NFS and SQLite
+RUN apt-get clean && apt-get update && apt-get -y install \
+    nginx \
+    python3-dev \
+    build-essential \
+    nfs-common \
+    && rm -rf /var/lib/apt/lists/*
+
+# Ensure the /nfs mount directory exists (database will be created here)
+RUN mkdir -p /nfs
+
+# Expose port (optional if not used directly)
 EXPOSE 5000
 
-# Command to run the application
-CMD ["python3", "main.py"] 
+# Run the application
+CMD ["python", "main.py"]
