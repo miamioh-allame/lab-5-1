@@ -1,4 +1,12 @@
-iimport sqlite3
+import sqlite3
+
+# Database file path, ensure this matches the path used in your Flask application
+DATABASE = '/nfs/demo.db'
+
+def connect_db():
+    """Connect to the SQLite database."""
+    return sqlite3.connect(DATABASE)
+
 
 def clear_sample_contacts():
     db = sqlite3.connect("/nfs/demo.db")
