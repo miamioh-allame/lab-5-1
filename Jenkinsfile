@@ -13,11 +13,8 @@ pipeline {
         stage('Code Checkout') {
             steps {
                 cleanWs()
-                checkout([
-                    $class: 'GitSCM',
-                    branches: [[name: '*/main']],
-                    userRemoteConfigs: [[url: "${GITHUB_URL}"]]
-                ])
+                checkout([$class: 'GitSCM', branches: [[name: '*/main']],
+                          userRemoteConfigs: [[url: "${GITHUB_URL}"]]])
             }
         }
 
@@ -49,54 +46,35 @@ pipeline {
         stage('Deploy to Dev Environment') {
             steps {
                 script {
-                    // This sets up the Kubernetes configuration using the specified KUBECONFIG
-                    def kubeConfig = readFile(KUBECONFIG)
-                    sh "kubectl delete --all deployments --namespace=default"
-                    // This updates the deployment-dev.yaml to use the new image tag
+                    sh 'kubectl delete --all deployments --namespace=default || true'
                     sh "sed -i 's|${DOCKER_IMAGE}:latest|${DOCKER_IMAGE}:${IMAGE_TAG}|' deployment-dev.yaml"
                     sh "kubectl apply -f deployment-dev.yaml"
                 }
             }
         }
 
-
-        stage('Reset Database (one-time)') {
+        stage('Generate Test Data') {
             steps {
                 script {
-                    def appPod = sh(
-                        script: "kubectl get pods -l app=flask -o jsonpath='{.items[0].metadata.name}'",
-                        returnStdout: true
-                    ).trim()
-
-                    // Ensure pod is ready before trying to delete the file
+                    sleep 10
+                    def appPod = sh(script: "kubectl get pods -l app=flask -o jsonpath='{.items[0].metadata.name}'", returnStdout: true).trim()
                     sh "kubectl wait pod/${appPod} --for=condition=ready --timeout=60s"
-
-                    // Delete the old DB file if it exists
-                    sh "kubectl exec ${appPod} -c flask -- rm -f /nfs/demo.db"
-                    echo "✅ Old database file deleted to reset schema."
+                    sh "kubectl exec ${appPod} -c flask -- python3 data-gen.py"
                 }
             }
         }
 
-        
-          stage('Generate Test Data') {
-    steps {
-        script {
-            sleep 10
-            def appPod = sh(
-                script: "kubectl get pods -l app=flask -o jsonpath='{.items[0].metadata.name}'",
-                returnStdout: true
-            ).trim()
-
-            // Wait for the pod to be ready
-            sh "kubectl wait pod/${appPod} --for=condition=ready --timeout=60s"
-
-            // Confirm container name and execute safely
-            sh "kubectl exec ${appPod} -c flask -- python3 data-gen.py"
+        // === REMOVE THIS STAGE AFTER FIRST SUCCESSFUL RUN ===
+        /*
+        stage('Reset Database (one-time)') {
+            steps {
+                script {
+                    def appPod = sh(script: "kubectl get pods -l app=flask -o jsonpath='{.items[0].metadata.name}'", returnStdout: true).trim()
+                    sh "kubectl exec ${appPod} -c flask -- python3 -c 'import sqlite3; db = sqlite3.connect(\"/nfs/demo.db\"); db.execute(\"DROP TABLE IF EXISTS contacts\"); db.commit(); db.close()'"
+                }
+            }
         }
-    }
-}
-
+        */
 
         stage("Run Acceptance Tests") {
             steps {
@@ -104,30 +82,20 @@ pipeline {
                     sh 'docker stop qa-tests || true'
                     sh 'docker rm qa-tests || true'
                     sh 'docker build -t qa-tests -f Dockerfile.test .'
-                    sh 'docker run qa-tests'
+                    sh 'docker run -e TARGET_URL=http://10.48.10.127 qa-tests'
                 }
             }
         }
-        
 
         stage('Remove Test Data') {
-    steps {
-        script {
-            def appPod = sh(
-                script: "kubectl get pods -l app=flask -o jsonpath='{.items[0].metadata.name}'",
-                returnStdout: true
-            ).trim()
-
-            // Wait for readiness just in case
-            sh "kubectl wait pod/${appPod} --for=condition=ready --timeout=60s"
-
-            // Run cleanup
-            sh "kubectl exec ${appPod} -c flask -- python3 data-clear.py"
+            steps {
+                script {
+                    def appPod = sh(script: "kubectl get pods -l app=flask -o jsonpath='{.items[0].metadata.name}'", returnStdout: true).trim()
+                    sh "kubectl wait pod/${appPod} --for=condition=ready --timeout=60s"
+                    sh "kubectl exec ${appPod} -c flask -- python3 data-clear.py"
+                }
+            }
         }
-    }
-}
-
-
 
         stage('Run Security Checks') {
             steps {
@@ -144,34 +112,29 @@ pipeline {
         stage('Deploy to Prod Environment') {
             steps {
                 script {
-                    // Set up Kubernetes configuration using the specified KUBECONFIG
-                    //sh "ls -la"
                     sh "sed -i 's|${DOCKER_IMAGE}:latest|${DOCKER_IMAGE}:${IMAGE_TAG}|' deployment-prod.yaml"
-                    sh "cd .."
                     sh "kubectl apply -f deployment-prod.yaml"
                 }
             }
         }
 
-         stage('Check Kubernetes Cluster') {
+        stage('Check Kubernetes Cluster') {
             steps {
-                script {
-                    sh "kubectl get all"
-                }
+                sh 'kubectl get all'
             }
         }
     }
 
-     post {
-
+    post {
         success {
-            slackSend color: "good", message: "Build Completed: ${env.JOB_NAME} ${env.BUILD_NUMBER}"
+            slackSend(color: "good", message: "✅ SUCCESS: ${env.JOB_NAME} #${env.BUILD_NUMBER}")
         }
         unstable {
-            slackSend color: "warning", message: "Build Completed: ${env.JOB_NAME} ${env.BUILD_NUMBER}"
+            slackSend(color: "warning", message: "⚠️ UNSTABLE: ${env.JOB_NAME} #${env.BUILD_NUMBER}")
         }
         failure {
-            slackSend color: "danger", message: "Build Completed: ${env.JOB_NAME} ${env.BUILD_NUMBER}"
+            slackSend(color: "danger", message: "❌ FAILED: ${env.JOB_NAME} #${env.BUILD_NUMBER}")
         }
     }
 }
+
