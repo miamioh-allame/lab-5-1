@@ -4,12 +4,11 @@ import os
 
 app = Flask(__name__)
 
-# Database file path
 DATABASE = '/nfs/demo.db'
 
 def get_db():
     db = sqlite3.connect(DATABASE)
-    db.row_factory = sqlite3.Row  # Enable name-based access to columns
+    db.row_factory = sqlite3.Row
     return db
 
 def init_db():
@@ -20,8 +19,7 @@ def init_db():
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 name TEXT NOT NULL,
                 phone TEXT NOT NULL,
-                address TEXT,
-                is_sample INTEGER DEFAULT 0
+                address TEXT NOT NULL
             );
         ''')
         db.commit()
@@ -40,13 +38,13 @@ def index():
             name = request.form.get('name')
             phone = request.form.get('phone')
             address = request.form.get('address')
-            if name and phone:
+            if name and phone and address:
                 db = get_db()
-                db.execute('INSERT INTO contacts (name, phone, address, is_sample) VALUES (?, ?, ?, ?)', (name, phone, address, 0))
+                db.execute('INSERT INTO contacts (name, phone, address) VALUES (?, ?, ?)', (name, phone, address))
                 db.commit()
                 message = 'Contact added successfully.'
             else:
-                message = 'Missing name or phone number.'
+                message = 'Missing contact details.'
 
     db = get_db()
     contacts = db.execute('SELECT * FROM contacts').fetchall()
@@ -57,80 +55,39 @@ def index():
         <head>
             <title>Contact List</title>
             <style>
-                body {
-                    font-family: Arial, sans-serif;
-                    background-color: #f4f4f9;
-                    color: #333;
-                    margin: 0;
-                    padding: 20px;
+                body { font-family: Arial; background-color: #f2f2f2; }
+                table { width: 80%; margin: auto; border-collapse: collapse; margin-top: 20px; }
+                th, td { padding: 12px; border: 1px solid #ddd; text-align: center; }
+                th { background-color: #4CAF50; color: white; }
+                tr:nth-child(even) { background-color: #f9f9f9; }
+                h2 { text-align: center; color: #4CAF50; }
+                .form-container { width: 50%; margin: auto; padding: 20px; background: white; border-radius: 10px; box-shadow: 0 0 10px #ccc; }
+                input[type=text], input[type=submit] {
+                    width: 100%; padding: 10px; margin: 5px 0 10px 0; border: 1px solid #ccc; border-radius: 5px;
                 }
-                h2 {
-                    color: #4a90e2;
-                    text-align: center;
-                }
-                table {
-                    width: 90%;
-                    margin: 20px auto;
-                    border-collapse: collapse;
-                    background-color: white;
-                    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-                }
-                th, td {
-                    padding: 10px;
-                    border: 1px solid #ddd;
-                    text-align: left;
-                }
-                th {
-                    background-color: #f0f0f0;
-                }
-                .form-container {
-                    width: 60%;
-                    margin: 0 auto;
-                    padding: 15px;
-                    background-color: #ffffff;
-                    border-radius: 8px;
-                    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-                }
-                input[type="text"] {
-                    width: 100%;
-                    padding: 8px;
-                    margin: 6px 0;
-                    box-sizing: border-box;
-                }
-                input[type="submit"] {
-                    background-color: #4CAF50;
-                    color: white;
-                    padding: 10px 20px;
-                    border: none;
-                    border-radius: 4px;
-                    cursor: pointer;
-                }
-                input[type="submit"]:hover {
-                    background-color: #45a049;
-                }
-                .delete-btn {
-                    background-color: #e74c3c;
-                    padding: 6px 12px;
-                }
-                .delete-btn:hover {
-                    background-color: #c0392b;
-                }
+                input[type=submit] { background-color: #4CAF50; color: white; border: none; cursor: pointer; }
+                input[type=submit]:hover { background-color: #45a049; }
+                .delete-btn { background-color: #f44336; color: white; border: none; padding: 5px 10px; border-radius: 5px; cursor: pointer; }
+                .delete-btn:hover { background-color: #e53935; }
             </style>
         </head>
         <body>
-            <h2>📱 Contact List – Managed by Jenkins CI/CD</h2>
             <div class="form-container">
+                <h2>Manage Contacts</h2>
                 <form method="POST" action="/">
                     <label for="name">Name:</label>
                     <input type="text" id="name" name="name" required>
+
                     <label for="phone">Phone Number:</label>
                     <input type="text" id="phone" name="phone" required>
+
                     <label for="address">Address:</label>
-                    <input type="text" id="address" name="address">
+                    <input type="text" id="address" name="address" required>
+
                     <input type="submit" value="Add Contact">
                 </form>
+                <p>{{ message }}</p>
             </div>
-            <p style="text-align:center; color:green;">{{ message }}</p>
 
             {% if contacts %}
                 <table>
@@ -138,21 +95,21 @@ def index():
                         <th>Name</th>
                         <th>Phone</th>
                         <th>Address</th>
-                        <th>Delete</th>
+                        <th>Action</th>
                     </tr>
                     {% for contact in contacts %}
-                    <tr>
-                        <td>{{ contact['name'] }}</td>
-                        <td>{{ contact['phone'] }}</td>
-                        <td>{{ contact['address'] }}</td>
-                        <td>
-                            <form method="POST" action="/">
-                                <input type="hidden" name="contact_id" value="{{ contact['id'] }}">
-                                <input type="hidden" name="action" value="delete">
-                                <input type="submit" value="Delete" class="delete-btn">
-                            </form>
-                        </td>
-                    </tr>
+                        <tr>
+                            <td>{{ contact['name'] }}</td>
+                            <td>{{ contact['phone'] }}</td>
+                            <td>{{ contact['address'] }}</td>
+                            <td>
+                                <form method="POST" action="/">
+                                    <input type="hidden" name="contact_id" value="{{ contact['id'] }}">
+                                    <input type="hidden" name="action" value="delete">
+                                    <input type="submit" value="Delete" class="delete-btn">
+                                </form>
+                            </td>
+                        </tr>
                     {% endfor %}
                 </table>
             {% else %}
