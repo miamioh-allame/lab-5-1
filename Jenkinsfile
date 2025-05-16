@@ -61,25 +61,20 @@ stage('Reset Database (one-time)') {
                 returnStdout: true
             ).trim()
 
-            // Wait for pod to be ready
+            // Wait for readiness
             sh "kubectl wait pod/${appPod} --for=condition=ready --timeout=60s"
 
-            // Add extra sleep to ensure container inside pod is ready
-            sleep(time: 10, unit: 'SECONDS')
+            // Small delay to ensure container is responsive
+            sleep 5
 
-            // Reset the database
+            // Drop and reset the table
             sh """
-                kubectl exec ${appPod} -c flask -- sh -c "python3 -c '
-import sqlite3
-db = sqlite3.connect(\\"/nfs/demo.db\\")
-db.execute(\\"DROP TABLE IF EXISTS contacts\\")
-db.commit()
-db.close()
-'"
+                kubectl exec ${appPod} -c flask -- python3 -c "import sqlite3; db = sqlite3.connect('/nfs/demo.db'); db.execute('DROP TABLE IF EXISTS contacts'); db.commit(); db.close()"
             """
         }
     }
 }
+
 
 
 
